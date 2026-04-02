@@ -22,7 +22,7 @@ public class EventController {
     private final EventSender<User> eventSender;
 
     @PostMapping("/{topic}")
-    void sendEvent(@RequestBody User user, @PathVariable String topic, @RequestParam Integer partition, @RequestParam String key) {
+    void sendEvent(@RequestBody User user, @PathVariable String topic, @RequestParam(required = false) Integer partition, @RequestParam(required = false) String key) {
         eventSender.sendEvent(user, topic, partition, key);
         log.info("sent event: {}", user);
     }

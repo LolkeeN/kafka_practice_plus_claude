@@ -16,10 +16,28 @@ public class EventListener {
 //            topic = "user-event",
 //            partitions = {"0", "1", "2"}
 //    )
-            topics = "user-event",
+            topics = {"user-event", "another-user-event"},
+            groupId = "fanout",
             containerFactory = "filterKafkaListenerContainerFactory"
     )
     void handle(User user) {
         log.info("Received event: {}", user);
+    }
+
+    @KafkaListener(
+//            topicPartitions = @TopicPartition(
+//            topic = "user-event",
+//            partitions = {"0", "1", "2"}
+//    )
+            topics = {"user-event"},
+            groupId = "fanout2",
+            containerFactory = "filterKafkaListenerContainerFactory"
+    )
+    void handle2(User user) {
+        log.info("Received event2: {}", user);
+
+        if (user.getUsername().contains("error")) {
+            throw new RuntimeException("ERROR!!!");
+        }
     }
 }

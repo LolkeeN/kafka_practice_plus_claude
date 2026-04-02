@@ -6,6 +6,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Configurable;
@@ -19,8 +20,11 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -94,14 +98,22 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, User>
-    filterKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, User> filterKafkaListenerContainerFactory() {
 
         ConcurrentKafkaListenerContainerFactory<String, User> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         factory.setRecordFilterStrategy(
                 record -> record.value().getBalance().compareTo(BigDecimal.valueOf(10_000)) < 0);
+        factory.setCommonErrorHandler(errorHandler());
         return factory;
+    }
+
+    @Bean
+    public DefaultErrorHandler errorHandler() {
+        FixedBackOff backOff = new FixedBackOff(2000L, 3L);
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate(),
+                ((consumerRecord, e) -> new TopicPartition(consumerRecord.topic() + ".DLT", consumerRecord.partition())));
+        return new DefaultErrorHandler(recoverer, backOff);
     }
 }

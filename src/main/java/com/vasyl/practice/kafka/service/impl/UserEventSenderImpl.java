@@ -12,7 +12,7 @@ public class UserEventSenderImpl<User> implements EventSender<User> {
     KafkaTemplate<String, User> kafkaTemplate;
 
     @Override
-    public void sendEvent(User eventBody, String topic, int partition, String key) {
+    public void sendEvent(User eventBody, String topic, Integer partition, String key) {
         kafkaTemplate.send(topic, partition, key, eventBody);
     }
 }
