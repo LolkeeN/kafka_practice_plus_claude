@@ -18,7 +18,7 @@ public class EventListener {
             groupId = "fanout",
             containerFactory = "kafkaListenerContainerFactory"
     )
-    void handle(User user) {
+    public void handle(User user) {
         log.info("Received event: {}", user);
     }
 
@@ -31,7 +31,7 @@ public class EventListener {
             groupId = "fanout2",
             containerFactory = "filterKafkaListenerContainerFactory"
     )
-    void handle2(User user) {
+    public void handle2(User user) {
         log.info("Received event2: {}", user);
 
         if (user.getUsername().contains("error")) {

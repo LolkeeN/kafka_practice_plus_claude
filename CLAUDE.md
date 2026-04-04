@@ -12,28 +12,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./mvnw spring-boot:build-image # Build OCI container image
 ```
 
-The app requires a Kafka broker running at `localhost:9092` before starting. Topics are auto-created by `KafkaConfig` on startup.
+The app requires a Kafka broker running at `localhost:9092` before starting. Topics are auto-created by `KafkaConfig` on startup (3 partitions, replication factor 1).
 
 ## Architecture
 
+Java 21, Spring Boot 4.0.5.
+
 **Request flow:**
 ```
-POST /api/event/{topic}  →  EventController  →  UserEventSenderImpl  →  KafkaTemplate  →  Kafka broker
+POST /api/event/{topic}?partition={optional}&key={optional}
+  →  EventController  →  UserEventSenderImpl  →  KafkaTemplate  →  Kafka broker
 ```
 
 **Consumption flow:**
 ```
 Topic: user-event
-  → Group "fanout"   → EventListener.handle()   [balance >= 10,000 filter]
+  → Group "fanout"   → EventListener.handle()   [no filter, no error handler]
   → Group "fanout2"  → EventListener.handle2()  [balance >= 10,000 filter; throws on "error" in username]
         ↓ (after 3 retries, 2s backoff)
   Topic: user-event.DLT
+
+Topic: another-user-event
+  → Group "fanout"   → EventListener.handle()   [no filter, no error handler]
 ```
 
 **Key configuration in `KafkaConfig`:**
-- `filterKafkaListenerContainerFactory` — used by all listeners; applies the balance filter, wires `DefaultErrorHandler` with fixed backoff (3 retries, 2s), and routes failures to `{topic}.DLT`
-- `ConsumerFactory` deserializes to `User`; trusted package scope is `com.vasyl.practice.*`
-- `KafkaTemplate` serializes values as JSON via Jackson
+- Two listener container factories:
+  - `kafkaListenerContainerFactory` (default) — used by `handle()`; no message filter, no error handler
+  - `filterKafkaListenerContainerFactory` — used by `handle2()`; applies `balance >= 10,000` filter, wires `DefaultErrorHandler` with fixed backoff (3 retries, 2s), and routes failures to `{topic}.DLT`
+- `ConsumerFactory` deserializes to `User`; trusted package `com.vasyl.practice.*`; group ID hardcoded to `"test-group-id"`; `AUTO_OFFSET_RESET = earliest`
+- `KafkaTemplate` serializes values as JSON via Jackson; producer key type is `String`
 - `ack-mode=manual_immediate` + `enable-auto-commit=false` — consumers must explicitly acknowledge
 
 **`EventSender<T>` interface** is the generic contract for producers; `UserEventSenderImpl` is the only implementation and is wired into the controller.
