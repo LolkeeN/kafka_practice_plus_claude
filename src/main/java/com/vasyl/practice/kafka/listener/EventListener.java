@@ -35,7 +35,18 @@ public class EventListener {
         log.info("Received event2: {}", user);
 
         if (user.getUsername().contains("error")) {
-            throw new RuntimeException("ERROR!!!");
+            RuntimeException ex = new RuntimeException("ERROR!!!");
+            log.error("Exception occurred in handle2() for user '{}': {}", user.getUsername(), ex.getMessage(), ex);
+            throw ex;
         }
+    }
+
+    @KafkaListener(
+            topics = {"user-event.DLT"},
+            groupId = "fanout2",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void handleDlt(User user) {
+        log.warn("DLT received message: {}", user);
     }
 }
