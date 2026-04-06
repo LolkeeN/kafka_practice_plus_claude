@@ -26,4 +26,10 @@ public class EventController {
         eventSender.sendEvent(user, topic, partition, key);
         log.info("sent event: {}", user);
     }
+
+    @PostMapping("/user-event-new")
+    void sendUserEventNew(@RequestBody User user, @RequestParam(required = false) Integer partition, @RequestParam(required = false) String key) {
+        eventSender.sendEvent(user, "user-event-new", partition, key);
+        log.warn("sent event to user-event-new: {}", user);
+    }
 }

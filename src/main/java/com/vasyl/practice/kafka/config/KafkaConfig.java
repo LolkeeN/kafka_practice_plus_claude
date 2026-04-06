@@ -48,6 +48,11 @@ public class KafkaConfig {
     }
 
     @Bean
+    public NewTopic topicUserEventNew() {
+        return new NewTopic("user-event-new", 3, (short) 1);
+    }
+
+    @Bean
     public ProducerFactory<String, String> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(

@@ -23,6 +23,15 @@ public class EventListener {
     }
 
     @KafkaListener(
+            topics = {"user-event-new"},
+            groupId = "fanout",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void handleUserEventNew(User user) {
+        log.warn("Received user-event-new: {}", user);
+    }
+
+    @KafkaListener(
 //            topicPartitions = @TopicPartition(
 //            topic = "user-event",
 //            partitions = {"0", "1", "2"}
